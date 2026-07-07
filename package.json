@@ -4,7 +4,8 @@
   "description": "MagicMirror² — generalized knockout bracket engine with pluggable sport providers",
   "main": "MMM-BracketEngine.js",
   "scripts": {
-    "test": "node test/validate.js"
+    "test": "node test/validate.js",
+    "test:order": "node test/bracket-order.js"
   },
   "dependencies": {
     "node-fetch": "^2.7.0"

@@ -84,17 +84,15 @@ class FifaProvider extends BaseProvider {
       ROUND_ID_MAP[stageName.toLowerCase()] ?? null;
 
     const roundIdByStageId = {};
-    const stageByRoundId = {};
     stages.forEach(stage => {
       const stageName = getDescription(stage.Name);
       const roundId = resolveRoundId(stageName);
       roundIdByStageId[stage.IdStage] = roundId;
-      if (roundId) stageByRoundId[roundId] = stage;
     });
 
-    const reorderR32FromNextRound = (r32Matches, nextStage) => {
+    const reorderMatchesFromNextStage = (matches, nextStage) => {
       const lookup = new Map();
-      r32Matches.forEach(m => lookup.set(String(m.IdMatch), m));
+      matches.forEach(m => lookup.set(String(m.IdMatch), m));
 
       const ordered = [];
       [...(nextStage.Matches || [])]
@@ -109,6 +107,19 @@ class FifaProvider extends BaseProvider {
       return ordered;
     };
 
+    const getNextStage = stage => {
+      const nextBySequence = stages.find(
+        s => s.SequenceOrder === stage.SequenceOrder + 1
+      );
+      if (!nextBySequence) return null;
+
+      const nextRoundId = roundIdByStageId[nextBySequence.IdStage];
+      // Final / 3rd-place stages still carry feeder refs for the prior round.
+      if (nextRoundId === "F" || nextRoundId === "3RD") return nextBySequence;
+
+      return nextRoundId ? nextBySequence : null;
+    };
+
     return stages
       .map(stage => {
         const stageName = getDescription(stage.Name);
@@ -116,21 +127,14 @@ class FifaProvider extends BaseProvider {
         if (!roundId) return null;
 
         let matches = [...(stage.Matches || [])];
+        const nextStage = getNextStage(stage);
 
-        if (roundId === "R32") {
-          const nextStage = stages.find(
-            s => s.SequenceOrder === stage.SequenceOrder + 1
-          );
-          const r16 =
-            nextStage && roundIdByStageId[nextStage.IdStage] === "R16"
-              ? nextStage
-              : stageByRoundId.R16;
-
-          if (r16) {
-            const ordered = reorderR32FromNextRound(matches, r16);
-            if (ordered.length === matches.length) {
-              matches = ordered;
-            }
+        if (nextStage) {
+          const ordered = reorderMatchesFromNextStage(matches, nextStage);
+          if (ordered.length === matches.length) {
+            matches = ordered;
+          } else {
+            matches.sort((a, b) => a.MatchNumber - b.MatchNumber);
           }
         } else {
           matches.sort((a, b) => a.MatchNumber - b.MatchNumber);
