@@ -1,5 +1,8 @@
 const NodeHelper = require("node_helper");
-const { validateBracket } = require("./schemas/bracket");
+const {
+  validateBracket,
+  layoutRoundsForMirroredBracket,
+} = require("./schemas/bracket");
 const FifaProvider = require("./providers/FifaProvider");
 const StaticProvider = require("./providers/StaticProvider");
 
@@ -36,6 +39,7 @@ module.exports = NodeHelper.create({
         if (!result.valid) {
           throw new Error(result.errors.join("; "));
         }
+        data.rounds = layoutRoundsForMirroredBracket(data.rounds);
         this.sendSocketNotification("BE_BRACKET_RESULT", data);
       })
       .catch(err => {

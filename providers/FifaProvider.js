@@ -83,62 +83,15 @@ class FifaProvider extends BaseProvider {
     const resolveRoundId = stageName =>
       ROUND_ID_MAP[stageName.toLowerCase()] ?? null;
 
-    const roundIdByStageId = {};
-    stages.forEach(stage => {
-      const stageName = getDescription(stage.Name);
-      const roundId = resolveRoundId(stageName);
-      roundIdByStageId[stage.IdStage] = roundId;
-    });
-
-    const reorderMatchesFromNextStage = (matches, nextStage) => {
-      const lookup = new Map();
-      matches.forEach(m => lookup.set(String(m.IdMatch), m));
-
-      const ordered = [];
-      [...(nextStage.Matches || [])]
-        .sort((a, b) => a.MatchNumber - b.MatchNumber)
-        .forEach(nextMatch => {
-          const a = lookup.get(String(nextMatch.TeamA));
-          const b = lookup.get(String(nextMatch.TeamB));
-          if (a) ordered.push(a);
-          if (b) ordered.push(b);
-        });
-
-      return ordered;
-    };
-
-    const getNextStage = stage => {
-      const nextBySequence = stages.find(
-        s => s.SequenceOrder === stage.SequenceOrder + 1
-      );
-      if (!nextBySequence) return null;
-
-      const nextRoundId = roundIdByStageId[nextBySequence.IdStage];
-      // Final / 3rd-place stages still carry feeder refs for the prior round.
-      if (nextRoundId === "F" || nextRoundId === "3RD") return nextBySequence;
-
-      return nextRoundId ? nextBySequence : null;
-    };
-
     return stages
       .map(stage => {
         const stageName = getDescription(stage.Name);
         const roundId = resolveRoundId(stageName);
         if (!roundId) return null;
 
-        let matches = [...(stage.Matches || [])];
-        const nextStage = getNextStage(stage);
-
-        if (nextStage) {
-          const ordered = reorderMatchesFromNextStage(matches, nextStage);
-          if (ordered.length === matches.length) {
-            matches = ordered;
-          } else {
-            matches.sort((a, b) => a.MatchNumber - b.MatchNumber);
-          }
-        } else {
-          matches.sort((a, b) => a.MatchNumber - b.MatchNumber);
-        }
+        const matches = [...(stage.Matches || [])].sort(
+          (a, b) => a.MatchNumber - b.MatchNumber
+        );
 
         return {
           id: roundId,
@@ -176,10 +129,16 @@ class FifaProvider extends BaseProvider {
         })
       : null;
 
+    const sources =
+      m.TeamA != null && m.TeamB != null
+        ? [m.TeamA, m.TeamB]
+        : undefined;
+
     return {
       id: m.IdMatch,
       status,
       date: dateStr,
+      sources,
       teamA: home
         ? {
             name:

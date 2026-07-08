@@ -140,6 +140,79 @@ function getSportIcon(sport) {
   return SPORT_ICONS[sport] || SPORT_ICONS.generic;
 }
 
+/**
+ * Reorder a round's matches for mirrored left/right layout using the next
+ * round's feeder references (match.sources → parent match ids).
+ * Providers attach sources on each match when the upstream API exposes them.
+ *
+ * @param {object[]} currentMatches
+ * @param {object[]} nextMatches
+ * @returns {object[]}
+ */
+function reorderRoundFromNext(currentMatches, nextMatches) {
+  if (!currentMatches?.length || !nextMatches?.length) return currentMatches;
+
+  const hasSources = nextMatches.some(
+    m => Array.isArray(m.sources) && m.sources.length >= 2
+  );
+  if (!hasSources) return currentMatches;
+
+  const lookup = new Map(currentMatches.map(m => [String(m.id), m]));
+  const ordered = [];
+  const used = new Set();
+
+  for (const nextMatch of nextMatches) {
+    for (const sourceId of nextMatch.sources || []) {
+      const key = String(sourceId);
+      if (used.has(key)) continue;
+      const match = lookup.get(key);
+      if (match) {
+        ordered.push(match);
+        used.add(key);
+      }
+    }
+  }
+
+  return ordered.length === currentMatches.length ? ordered : currentMatches;
+}
+
+/**
+ * Lay out side-round matches for the mirrored bracket renderer.
+ * Works inside-out: each round is ordered from the already-laid-out next
+ * round, so feeder pairs stay on the same bracket half at every stage.
+ *
+ * @param {object[]} rounds
+ * @returns {object[]}
+ */
+function layoutRoundsForMirroredBracket(rounds) {
+  if (!Array.isArray(rounds) || rounds.length === 0) return rounds;
+
+  const sorted = sortRounds(rounds);
+  const byId = new Map(
+    sorted.map(round => [round.id, { ...round, matches: [...round.matches] }])
+  );
+  const side = getSideRounds(sorted);
+
+  if (side.length === 0) return sorted.map(r => byId.get(r.id));
+
+  const finalRound = byId.get("F");
+  if (finalRound) {
+    const lastSide = byId.get(side[side.length - 1].id);
+    lastSide.matches = reorderRoundFromNext(
+      lastSide.matches,
+      finalRound.matches
+    );
+  }
+
+  for (let i = side.length - 2; i >= 0; i--) {
+    const prev = byId.get(side[i].id);
+    const next = byId.get(side[i + 1].id);
+    prev.matches = reorderRoundFromNext(prev.matches, next.matches);
+  }
+
+  return sorted.map(round => byId.get(round.id));
+}
+
 module.exports = {
   ROUND_ORDER,
   ROUND_LABELS,
@@ -149,4 +222,6 @@ module.exports = {
   getSideRounds,
   getRoundLabel,
   getSportIcon,
+  reorderRoundFromNext,
+  layoutRoundsForMirroredBracket,
 };
