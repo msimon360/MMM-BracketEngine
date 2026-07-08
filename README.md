@@ -123,7 +123,6 @@ All providers must return this shape:
           teamA: { name: "Germany", abbr: "GER" },
           teamB: { name: "France", abbr: "FRA" },
           // optional:
-          sources: [12, 34],    // parent match ids from previous round (for layout)
           date: "Jul 6",
           scoreA: 2, scoreB: 1,
           penA: 4, penB: 3,
@@ -137,7 +136,7 @@ All providers must return this shape:
 
 Validation runs in `node_helper.js` before data reaches the frontend. Invalid payloads trigger `BE_BRACKET_ERROR`.
 
-After validation, `layoutRoundsForMirroredBracket()` reorders side-round matches using each match's optional `sources` array (feeder parent ids from the previous round). This runs inside-out so every stage aligns with the mirrored left/right renderer. Providers should populate `sources` when the upstream API exposes feeder links; rounds without `sources` keep their original order.
+After validation, `layoutRoundsForMirroredBracket()` reorders side-round matches automatically. It uses each match's **teams and winners** to infer feeder links when the next stage already lists its participants — no extra provider fields required. Optional `sources: [parentIdA, parentIdB]` on a match can override inference when an API exposes explicit parent ids.
 
 ---
 

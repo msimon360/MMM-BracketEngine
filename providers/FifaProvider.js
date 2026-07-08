@@ -129,16 +129,10 @@ class FifaProvider extends BaseProvider {
         })
       : null;
 
-    const sources =
-      m.TeamA != null && m.TeamB != null
-        ? [m.TeamA, m.TeamB]
-        : undefined;
-
     return {
       id: m.IdMatch,
       status,
       date: dateStr,
-      sources,
       teamA: home
         ? {
             name:

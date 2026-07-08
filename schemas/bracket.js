@@ -140,36 +140,70 @@ function getSportIcon(sport) {
   return SPORT_ICONS[sport] || SPORT_ICONS.generic;
 }
 
+function isKnownTeam(abbr) {
+  return (
+    typeof abbr === "string" &&
+    abbr.length > 0 &&
+    abbr !== "TBD" &&
+    !/^(W|RU)\d+/i.test(abbr)
+  );
+}
+
+function advancingTeams(match) {
+  if (match.winner) return [match.winner];
+  return [match.teamA?.abbr, match.teamB?.abbr].filter(isKnownTeam);
+}
+
+function knownTeamsInMatch(match) {
+  return [match.teamA?.abbr, match.teamB?.abbr].filter(isKnownTeam);
+}
+
+function prevMatchFeedsNext(prevMatch, nextMatch) {
+  const advancing = new Set(advancingTeams(prevMatch));
+  return knownTeamsInMatch(nextMatch).some(abbr => advancing.has(abbr));
+}
+
+function inferFeederMatches(prevMatches, nextMatch) {
+  if (Array.isArray(nextMatch.sources) && nextMatch.sources.length >= 2) {
+    return nextMatch.sources
+      .map(id => prevMatches.find(m => String(m.id) === String(id)))
+      .filter(Boolean);
+  }
+
+  const targets = knownTeamsInMatch(nextMatch);
+  if (targets.length < 2) return [];
+
+  const feeders = [];
+  const picked = new Set();
+  for (const abbr of targets) {
+    const feeder = prevMatches.find(m => {
+      const key = String(m.id);
+      if (picked.has(key)) return false;
+      return advancingTeams(m).includes(abbr);
+    });
+    if (feeder) {
+      feeders.push(feeder);
+      picked.add(String(feeder.id));
+    }
+  }
+  return feeders;
+}
+
 /**
- * Reorder a round's matches for mirrored left/right layout using the next
- * round's feeder references (match.sources → parent match ids).
- * Providers attach sources on each match when the upstream API exposes them.
- *
- * @param {object[]} currentMatches
- * @param {object[]} nextMatches
- * @returns {object[]}
+ * Reorder an earlier round from the next round (inside-out pass).
  */
 function reorderRoundFromNext(currentMatches, nextMatches) {
   if (!currentMatches?.length || !nextMatches?.length) return currentMatches;
 
-  const hasSources = nextMatches.some(
-    m => Array.isArray(m.sources) && m.sources.length >= 2
-  );
-  if (!hasSources) return currentMatches;
-
-  const lookup = new Map(currentMatches.map(m => [String(m.id), m]));
-  const ordered = [];
   const used = new Set();
+  const ordered = [];
 
   for (const nextMatch of nextMatches) {
-    for (const sourceId of nextMatch.sources || []) {
-      const key = String(sourceId);
+    for (const feeder of inferFeederMatches(currentMatches, nextMatch)) {
+      const key = String(feeder.id);
       if (used.has(key)) continue;
-      const match = lookup.get(key);
-      if (match) {
-        ordered.push(match);
-        used.add(key);
-      }
+      ordered.push(feeder);
+      used.add(key);
     }
   }
 
@@ -177,12 +211,55 @@ function reorderRoundFromNext(currentMatches, nextMatches) {
 }
 
 /**
+ * Reorder a later round from paired feeders in the previous round.
+ */
+function reorderRoundFromPrev(prevMatches, nextMatches) {
+  if (!prevMatches?.length || !nextMatches?.length) return nextMatches;
+
+  const ordered = [];
+  const used = new Set();
+  const half = Math.ceil(prevMatches.length / 2);
+
+  for (const segment of [
+    prevMatches.slice(0, half),
+    prevMatches.slice(half),
+  ]) {
+    for (let i = 0; i < segment.length; i += 2) {
+      const feederA = segment[i];
+      const feederB = segment[i + 1];
+      if (!feederA || !feederB) continue;
+
+      const nextMatch = nextMatches.find(nm => {
+        if (used.has(String(nm.id))) return false;
+        return (
+          prevMatchFeedsNext(feederA, nm) && prevMatchFeedsNext(feederB, nm)
+        );
+      });
+
+      if (nextMatch) {
+        ordered.push(nextMatch);
+        used.add(String(nextMatch.id));
+      }
+    }
+  }
+
+  if (ordered.length === 0) return nextMatches;
+
+  for (const nm of nextMatches) {
+    if (!used.has(String(nm.id))) ordered.push(nm);
+  }
+
+  return ordered.length === nextMatches.length ? ordered : nextMatches;
+}
+
+/**
  * Lay out side-round matches for the mirrored bracket renderer.
- * Works inside-out: each round is ordered from the already-laid-out next
- * round, so feeder pairs stay on the same bracket half at every stage.
- *
- * @param {object[]} rounds
- * @returns {object[]}
+ * Uses only teams and winners — no extra provider fields required.
+ */
+/**
+ * Lay out side-round matches for the mirrored bracket renderer.
+ * Inside-out pass: when the next stage lists its teams (or winners),
+ * reorder the previous round so feeder pairs share a bracket half.
  */
 function layoutRoundsForMirroredBracket(rounds) {
   if (!Array.isArray(rounds) || rounds.length === 0) return rounds;
@@ -223,5 +300,6 @@ module.exports = {
   getRoundLabel,
   getSportIcon,
   reorderRoundFromNext,
+  reorderRoundFromPrev,
   layoutRoundsForMirroredBracket,
 };
