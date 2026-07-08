@@ -5,7 +5,8 @@
   "main": "MMM-BracketEngine.js",
   "scripts": {
     "test": "node test/validate.js && node test/layout-rounds.js",
-    "test:order": "node test/bracket-order.js"
+    "test:order": "node test/bracket-order.js",
+    "test:wimbledon": "node test/wimbledon.js"
   },
   "dependencies": {
     "node-fetch": "^2.7.0"

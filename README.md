@@ -45,7 +45,7 @@ Restart MagicMirror after installing: `pm2 restart mm`
 
 | Option | Default | Description |
 |---|---|---|
-| `provider` | `"fifa"` | Data provider name (`fifa`, `static`) |
+| `provider` | `"fifa"` | Data provider name (`fifa`, `static`, `wimbledon`) |
 | `providerConfig` | `{}` | Provider-specific settings (see below) |
 | `updateInterval` | `180000` | Milliseconds between data refreshes |
 | `animationSpeed` | `1000` | DOM update fade speed in ms |
@@ -68,6 +68,22 @@ providerConfig: {
 ```
 
 Data source: `https://api.fifa.com/api/v3/seasonbracket/season/{seasonId}`
+
+### Wimbledon provider
+
+```js
+provider: "wimbledon",
+providerConfig: {
+  year: "2025",           // championship year
+  drawCode: "MS",         // MS, LS, MD, LD, or XD
+  fromRoundCode: "4",     // optional: 1, 2, 3, 4, Q, S, F — default depends on draw
+  title: "Wimbledon 2025 Gentlemen's Singles"  // optional
+}
+```
+
+Data source: `https://www.wimbledon.com/en_GB/scores/feeds/{year}/draws/{drawCode}.json`
+
+Defaults: Gentlemen's/Ladies' singles start at the Third Round (`3`, 16 players); doubles draws start at the Second Round (`2`). Use `fromRoundCode: "4"` for a compact singles view (Round of 16 through Final).
 
 ### Static provider (offline / testing)
 
