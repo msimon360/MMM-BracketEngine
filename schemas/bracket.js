@@ -190,7 +190,9 @@ function inferFeederMatches(prevMatches, nextMatch) {
 }
 
 /**
- * Reorder an earlier round from the next round (inside-out pass).
+ * Reorder an earlier round's match list for mirrored layout.
+ * Uses a later round's listed participants to find feeder matches in the
+ * previous round (bracket still advances R16 → QF, not the other way around).
  */
 function reorderRoundFromNext(currentMatches, nextMatches) {
   if (!currentMatches?.length || !nextMatches?.length) return currentMatches;
@@ -211,7 +213,8 @@ function reorderRoundFromNext(currentMatches, nextMatches) {
 }
 
 /**
- * Reorder a later round from paired feeders in the previous round.
+ * Reorder a later round's match list from paired results in the previous round
+ * (bracket flow: R16 winners feed QF slots).
  */
 function reorderRoundFromPrev(prevMatches, nextMatches) {
   if (!prevMatches?.length || !nextMatches?.length) return nextMatches;
@@ -254,12 +257,12 @@ function reorderRoundFromPrev(prevMatches, nextMatches) {
 
 /**
  * Lay out side-round matches for the mirrored bracket renderer.
- * Uses only teams and winners — no extra provider fields required.
- */
-/**
- * Lay out side-round matches for the mirrored bracket renderer.
- * Inside-out pass: when the next stage lists its teams (or winners),
+ *
+ * Bracket flow is outside-in (R32 → R16 → QF → SF → F). Layout runs the
+ * opposite direction for sorting only: when a later round lists its teams,
  * reorder the previous round so feeder pairs share a bracket half.
+ *
+ * Example: once QF lists NOR vs ENG, reorder R16 (not "build R16 from QF").
  */
 function layoutRoundsForMirroredBracket(rounds) {
   if (!Array.isArray(rounds) || rounds.length === 0) return rounds;

@@ -136,7 +136,9 @@ All providers must return this shape:
 
 Validation runs in `node_helper.js` before data reaches the frontend. Invalid payloads trigger `BE_BRACKET_ERROR`.
 
-After validation, `layoutRoundsForMirroredBracket()` reorders side-round matches automatically. It uses each match's **teams and winners** to infer feeder links when the next stage already lists its participants — no extra provider fields required. Optional `sources: [parentIdA, parentIdB]` on a match can override inference when an API exposes explicit parent ids.
+After validation, `layoutRoundsForMirroredBracket()` reorders side-round matches for the mirrored renderer. Bracket **results** flow outside-in (R32 → R16 → QF → …). **Layout** walks the other way for sorting only: when QF lists its teams, the engine reorders the R16 match list so winners line up with the correct QF slot — it does not imply QF feeds R16.
+
+Uses each match's **teams and winners** to infer feeder links when the next stage already lists its participants. No extra provider fields required. Optional `sources: [parentIdA, parentIdB]` can override inference when an API exposes explicit parent ids.
 
 ---
 
