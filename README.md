@@ -1,11 +1,17 @@
 # MMM-BracketEngine
 
-A [MagicMirror²](https://github.com/MichMich/MagicMirror) module that displays a live, mirrored knockout tournament bracket for any sport. Providers fetch data from external APIs and normalize it into a common format; the engine renders it with a CSS Grid layout.
+A [MagicMirror²](https://github.com/MichMich/MagicMirror) module that displays a mirrored knockout tournament bracket for any sport. Providers fetch data from external APIs and normalize it into a common format; the engine renders it with a CSS Grid layout. You can also use a static bracket that you edit so you can display a tournament that has no online data.
 
 Seeded from [MMM-FIFAWorldCup](https://github.com/msimon360/mmm-fifaworldcup) and generalized for multi-sport support.
 
 ---
+## Screenshots
+Wimbledon Mens Singles
+<img width="1527" height="952" alt="Wimbledon" src="https://github.com/user-attachments/assets/628fee65-9779-4c0a-9027-8c964eff2828" />
+FIFA World Cup
+<img width="1743" height="1044" alt="FIFA_WorldCup" src="https://github.com/user-attachments/assets/3f09de51-9c33-4ea0-848e-cecb5192bf50" />
 
+---
 ## Installation
 
 ```bash
@@ -85,7 +91,7 @@ Data source: `https://www.wimbledon.com/en_GB/scores/feeds/{year}/draws/{drawCod
 
 Defaults: Gentlemen's/Ladies' singles start at the Third Round (`3`, 16 players); doubles draws start at the Second Round (`2`). Use `fromRoundCode: "4"` for a compact singles view (Round of 16 through Final).
 
-### Static provider (offline / testing)
+### Static provider (offline tournament / testing)
 
 ```js
 provider: "static",
