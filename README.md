@@ -91,6 +91,8 @@ Data source: `https://www.wimbledon.com/en_GB/scores/feeds/{year}/draws/{drawCod
 
 Defaults: Gentlemen's/Ladies' singles start at the Third Round (`3`, 16 players); doubles draws start at the Second Round (`2`). Use `fromRoundCode: "4"` for a compact singles view (Round of 16 through Final).
 
+The engine renders at most five stages (Round of 32 through the Final). If `fromRoundCode` starts earlier than that — `"1"` or `"2"` on a 128-player singles draw — the extra early rounds are dropped and the latest five are shown.
+
 ### Static provider (offline tournament / testing)
 
 ```js
@@ -156,6 +158,10 @@ All providers must return this shape:
 }
 ```
 
+### Flags
+
+A team may carry its own `flag` emoji. Without one, the engine derives a flag from `abbr` using the lookup in `lib/country-flags.js`, which understands IOC codes (`ALG`, `GER`, `SUI`), ISO alpha-3 codes (`DZA`, `DEU`, `CHE`) and FIFA spellings (`TRI`, `SIN`, `EQG`). Codes it does not recognise render no flag rather than a guess — truncating a three-letter code to two letters produces a different country's flag more often than not.
+
 Validation runs in `node_helper.js` before data reaches the frontend. Invalid payloads trigger `BE_BRACKET_ERROR`.
 
 After validation, `layoutRoundsForMirroredBracket()` reorders side-round matches for the mirrored renderer. Bracket **results** flow outside-in (R32 → R16 → QF → …). **Layout** walks the other way for sorting only: when QF lists its teams, the engine reorders the R16 match list so winners line up with the correct QF slot — it does not imply QF feeds R16.
@@ -184,6 +190,8 @@ Provider-specific match ordering (e.g. FIFA R32 reorder) belongs in the provider
 ```
 MMM-BracketEngine.js  ←→  node_helper.js  ←→  providers/
      (render)              (router)            (fifa, static, …)
+         ↕                                          ↕
+                        lib/  (shared browser + node helpers)
 ```
 
 Socket notifications: `BE_GET_BRACKET`, `BE_BRACKET_RESULT`, `BE_BRACKET_ERROR`
@@ -195,17 +203,21 @@ Socket notifications: `BE_GET_BRACKET`, `BE_BRACKET_RESULT`, `BE_BRACKET_ERROR`
 ## Testing
 
 ```bash
-npm test
+npm test            # offline: schema, layout, flags, round ids, rendering
+npm run test:order  # live FIFA feed: mirrored bracket ordering
+npm run test:wimbledon  # live Wimbledon feed: draw parsing
 ```
 
-Validates the placeholder bracket against the schema.
+`npm test` needs no network. It validates the placeholder bracket against the schema, checks mirrored-bracket ordering, checks country-code to flag resolution, checks the Wimbledon feed round to engine round id mapping, and renders `getDom()` against a stub DOM to confirm the bracket grid and the error states.
 
 ---
 
 ## Troubleshooting
 
-- **"Loading bracket…" forever** — check `pm2 logs mm` for `[MMM-BracketEngine]` errors. Confirm network access if using the FIFA provider.
-- **Stale data after error** — the module keeps the last good bracket and shows a dimmed error message.
+- **"No bracket data yet." with a red message** — the provider failed. The message is the provider's error; check `pm2 logs mm` for the full `[MMM-BracketEngine]` stack. Confirm network access for the FIFA and Wimbledon providers.
+- **"Loading bracket…" forever** — the module has not heard back from `node_helper` at all. Confirm the module directory name matches the module name in `config.js`.
+- **Stale data after error** — expected: the module keeps the last good bracket and shows a dimmed error message beneath it.
+- **A team shows no flag** — its `abbr` is not a country code the lookup recognises. Add it to `lib/country-flags.js`, or set `flag` on the team in the provider.
 - **Layout looks wrong** — full restart required (`pm2 restart mm`), not just a browser refresh.
 
 ---
