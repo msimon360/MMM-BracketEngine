@@ -4,7 +4,7 @@
   "description": "MagicMirror² — generalized knockout bracket engine with pluggable sport providers",
   "main": "MMM-BracketEngine.js",
   "scripts": {
-    "test": "node test/validate.js && node test/layout-rounds.js && node test/flags.js && node test/wimbledon-rounds.js",
+    "test": "node test/validate.js && node test/layout-rounds.js && node test/flags.js && node test/wimbledon-rounds.js && node test/render.js",
     "test:order": "node test/bracket-order.js",
     "test:wimbledon": "node test/wimbledon.js"
   },
