@@ -5,6 +5,7 @@
  * drawCode: MS, LS, MD, LD, XD
  */
 const BaseProvider = require("./BaseProvider");
+const { countryFlag } = require("../lib/country-flags");
 
 let _fetch;
 try {
@@ -200,13 +201,7 @@ class WimbledonProvider extends BaseProvider {
   }
 
   nationFlag(nation) {
-    if (!nation || nation.length !== 3) return "";
-    const map = { GBR: "GB", USA: "US", TPE: "TW", ESA: "SV" };
-    const a2 = map[nation] || nation.slice(0, 2);
-    return [...a2]
-      .slice(0, 2)
-      .map(c => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
-      .join("");
+    return countryFlag(nation);
   }
 
   parseStatus(match) {

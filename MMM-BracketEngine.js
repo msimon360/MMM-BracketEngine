@@ -31,6 +31,10 @@ Module.register("MMM-BracketEngine", {
     return ["MMM-BracketEngine.css"];
   },
 
+  getScripts() {
+    return [this.file("lib/country-flags.js")];
+  },
+
   getHeader() {
     if (this.config.header) return this.config.header;
     const icon = this.bracket?.meta?.icon || "";
@@ -335,22 +339,7 @@ Module.register("MMM-BracketEngine", {
   },
 
   _flag(abbr) {
-    if (!abbr || /\d/.test(abbr)) return "";
-    const map = {
-      MEX: "MX", RSA: "ZA", KOR: "KR", CZE: "CZ", SUI: "CH", CAN: "CA",
-      BIH: "BA", QAT: "QA", BRA: "BR", MAR: "MA", SCO: "GB", HTI: "HT",
-      USA: "US", AUS: "AU", PAR: "PY", TUR: "TR", GER: "DE", CIV: "CI",
-      ECU: "EC", CUW: "CW", NED: "NL", JPN: "JP", SWE: "SE", TUN: "TN",
-      BEL: "BE", EGY: "EG", IRN: "IR", NZL: "NZ", ESP: "ES", CPV: "CV",
-      URU: "UY", KSA: "SA", FRA: "FR", NOR: "NO", SEN: "SN", IRQ: "IQ",
-      ARG: "AR", AUT: "AT", DZA: "DZ", JOR: "JO", COL: "CO", POR: "PT",
-      COD: "CD", UZB: "UZ", ENG: "GB", CRO: "HR", GHA: "GH", PAN: "PA",
-    };
-    const a2 = map[abbr] || abbr.slice(0, 2);
-    return [...a2]
-      .slice(0, 2)
-      .map(c => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
-      .join("");
+    return BracketCountryFlags.countryFlag(abbr);
   },
 
   scheduleUpdate(delay) {
