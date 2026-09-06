@@ -38,9 +38,6 @@ const LIVE_TEXT = /live|in progress|suspended|resuming/i;
 const WALKOVER_TEXT = /walkover|defaulted/i;
 
 class SlamDrawProvider extends BaseProvider {
-  static ROUND_SEQUENCE = ROUND_SEQUENCE;
-  static ENGINE_ROUND_IDS = ENGINE_ROUND_IDS;
-
   /** @returns {string} Tournament name used in the bracket header. */
   get tournamentName() {
     throw new Error(`Provider "${this.name}" does not define tournamentName`);
