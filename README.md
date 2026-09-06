@@ -51,7 +51,7 @@ Restart MagicMirror after installing: `pm2 restart mm`
 
 | Option | Default | Description |
 |---|---|---|
-| `provider` | `"fifa"` | Data provider name (`fifa`, `static`, `wimbledon`) |
+| `provider` | `"fifa"` | Data provider name (`fifa`, `usopen`, `wimbledon`, `static`) |
 | `providerConfig` | `{}` | Provider-specific settings (see below) |
 | `updateInterval` | `180000` | Milliseconds between data refreshes |
 | `animationSpeed` | `1000` | DOM update fade speed in ms |
@@ -91,7 +91,41 @@ Data source: `https://www.wimbledon.com/en_GB/scores/feeds/{year}/draws/{drawCod
 
 Defaults: Gentlemen's/Ladies' singles start at the Third Round (`3`, 16 players); doubles draws start at the Second Round (`2`). Use `fromRoundCode: "4"` for a compact singles view (Round of 16 through Final).
 
-The engine renders at most five stages (Round of 32 through the Final). If `fromRoundCode` starts earlier than that — `"1"` or `"2"` on a 128-player singles draw — the extra early rounds are dropped and the latest five are shown.
+### US Open provider
+
+```js
+provider: "usopen",
+providerConfig: {
+  year: "2026",           // tournament year, defaults to the current one
+  drawCode: "MS",         // MS, WS, MD, WD, XD, BS, or GS
+  fromRoundCode: "4",     // optional: 1, 2, 3, 4, Q, S, F
+  title: "US Open 2026 Men's Singles"  // optional
+}
+```
+
+Data source: `https://www.usopen.org/en_US/scores/feeds/{year}/draws/{drawCode}.json`
+
+The women's draws are `WS` and `WD`, not Wimbledon's `LS` and `LD`. `BS` and `GS` are the junior singles draws. Any other code the feed serves still works — the header falls back to the event name the feed reports.
+
+Without a `fromRoundCode` the provider shows the latest rounds that fit, whatever the draw size: the Round of 32 onwards for a 128-player singles draw, and the Round of 16 onwards for the 16-team mixed doubles draw. That matters because mixed doubles was a 32-team draw in 2024 and a 16-team draw from 2025, so no single starting round is right for both.
+
+### Round trimming
+
+The engine renders at most five stages (Round of 32 through the Final). Draws that supply more — a 128-player singles draw, or `fromRoundCode: "1"` — have their earliest rounds dropped so the latest five are shown. Smaller draws simply render the stages they have.
+
+### Match states
+
+Both tennis providers read each match's state from the feed's status code:
+
+| Feed status | Rendered as |
+|---|---|
+| `Completed` | Final, with the set score |
+| `Retired` | Final, with the set score reached before the retirement |
+| `Walkover` | Final, winner highlighted, no score — nobody took the court |
+| *(empty)* | Scheduled, with the match date when the feed carries one |
+| `In Progress` | Live, with the running set score |
+
+A match that names a winner under any other status code is treated as final, so an unfamiliar code cannot leave a decided match looking like an upcoming one.
 
 ### Static provider (offline tournament / testing)
 
@@ -194,6 +228,13 @@ MMM-BracketEngine.js  ←→  node_helper.js  ←→  providers/
                         lib/  (shared browser + node helpers)
 ```
 
+Wimbledon and the US Open publish the same draw feed, so both extend
+`providers/SlamDrawProvider.js` and supply only their host, draw labels and
+tournament name.
+
+```
+```
+
 Socket notifications: `BE_GET_BRACKET`, `BE_BRACKET_RESULT`, `BE_BRACKET_ERROR`
 
 `MMM-BracketEngine` and `MMM-FIFAWorldCup` can coexist on the same mirror (different socket prefixes).
@@ -203,12 +244,13 @@ Socket notifications: `BE_GET_BRACKET`, `BE_BRACKET_RESULT`, `BE_BRACKET_ERROR`
 ## Testing
 
 ```bash
-npm test            # offline: schema, layout, flags, round ids, rendering
-npm run test:order  # live FIFA feed: mirrored bracket ordering
+npm test                # offline: schema, layout, flags, draw parsing, rendering
+npm run test:order      # live FIFA feed: mirrored bracket ordering
 npm run test:wimbledon  # live Wimbledon feed: draw parsing
+npm run test:usopen     # live US Open feed: draw parsing
 ```
 
-`npm test` needs no network. It validates the placeholder bracket against the schema, checks mirrored-bracket ordering, checks country-code to flag resolution, checks the Wimbledon feed round to engine round id mapping, and renders `getDom()` against a stub DOM to confirm the bracket grid and the error states.
+`npm test` needs no network. It validates the placeholder bracket against the schema, checks mirrored-bracket ordering, checks country-code to flag resolution, checks the Grand Slam draw parsing shared by the Wimbledon and US Open providers (round ids, match states, feed URLs), and renders `getDom()` against a stub DOM to confirm the bracket grid and the error states.
 
 ---
 
