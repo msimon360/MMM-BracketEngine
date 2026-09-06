@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node test/validate.js && node test/layout-rounds.js && node test/flags.js && node test/slam-draws.js && node test/render.js",
     "test:order": "node test/bracket-order.js",
+    "test:usopen": "node test/usopen.js",
     "test:wimbledon": "node test/wimbledon.js"
   },
   "dependencies": {
