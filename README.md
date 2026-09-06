@@ -80,7 +80,7 @@ Data source: `https://api.fifa.com/api/v3/seasonbracket/season/{seasonId}`
 ```js
 provider: "wimbledon",
 providerConfig: {
-  year: "2025",           // championship year
+  year: "2025",           // championship year, defaults to the current one
   drawCode: "MS",         // MS, LS, MD, LD, or XD
   fromRoundCode: "4",     // optional: 1, 2, 3, 4, Q, S, F — default depends on draw
   title: "Wimbledon 2025 Gentlemen's Singles"  // optional
