@@ -1,9 +1,9 @@
 /**
- * Wimbledon feed round → engine round id mapping (offline, synthetic feed).
+ * Grand Slam draw feed round → engine round id mapping (offline, synthetic feed).
  * A draw with more feed rounds than the engine can name used to walk off the
  * front of ENGINE_ROUND_IDS and emit `id: undefined`, which fails schema
  * validation and leaves nothing to render.
- * Run: node test/wimbledon-rounds.js
+ * Run: node test/slam-draws.js
  */
 const WimbledonProvider = require("../providers/WimbledonProvider");
 const { validateBracket } = require("../schemas/bracket");
@@ -132,7 +132,7 @@ check("unrecognised code", {
 });
 
 if (failures) {
-  console.error(`\nwimbledon-rounds: FAIL (${failures} problem${failures === 1 ? "" : "s"})`);
+  console.error(`\nslam-draws: FAIL (${failures} problem${failures === 1 ? "" : "s"})`);
   process.exit(1);
 }
-console.log("wimbledon-rounds: PASS");
+console.log("slam-draws: PASS");
