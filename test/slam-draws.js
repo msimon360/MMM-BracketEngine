@@ -171,6 +171,60 @@ checkRounds("fromRoundCode still narrows the view", UsOpenProvider, {
   config: { drawCode: "MS", fromRoundCode: "4" }, expected: "R16(8) QF(4) SF(2) F(1)",
 });
 
+/* ----------------------------------------------------------- match states */
+
+console.log("Match states are read from the feed status:");
+{
+  const m = parseOne({ statusCode: "D", status: "Completed", winner: "1" });
+  assert(m.status === "final", `completed match is ${m.status}, expected final`);
+  assert(m.scoreA === 3 && m.scoreB === 1, `completed score ${m.scoreA}-${m.scoreB}, expected 3-1`);
+  assert(m.winner === m.teamA.abbr, "completed match winner should be team A");
+}
+{
+  // A retirement is a finished match: it has a winner and a real set score.
+  const m = parseOne({ statusCode: "E", status: "Retired", winner: "1" });
+  assert(m.status === "final", `retired match is ${m.status}, expected final`);
+  assert(m.scoreA === 3 && m.scoreB === 1, `retired score ${m.scoreA}-${m.scoreB}, expected 3-1`);
+  assert(m.winner === m.teamA.abbr, "retired match should still name a winner");
+}
+{
+  // Nobody played, so the feed's 0-0 is not a set score worth showing.
+  const m = parseOne({
+    statusCode: "F", status: "Walkover", winner: "2",
+    team1: { displayNameA: "A. One", lastNameA: "One", nationA: "USA", totalSetsWon: 0 },
+    team2: { displayNameA: "B. Two", lastNameA: "Two", nationA: "ESP", totalSetsWon: 0 },
+  });
+  assert(m.status === "final", `walkover is ${m.status}, expected final`);
+  assert(m.scoreA === null && m.scoreB === null, `walkover shows score ${m.scoreA}-${m.scoreB}, expected none`);
+  assert(m.winner === m.teamB.abbr, "walkover should still name a winner");
+}
+{
+  const m = parseOne({ statusCode: "B", status: "", winner: null, epoch: null });
+  assert(m.status === "scheduled", `upcoming match is ${m.status}, expected scheduled`);
+  assert(m.scoreA === null && m.scoreB === null, "upcoming match should have no score");
+  assert(m.winner === null, "upcoming match should have no winner");
+  assert(m.date === null, "upcoming match without an epoch should have no date");
+}
+{
+  const m = parseOne({ statusCode: "L", status: "In Progress", winner: null });
+  assert(m.status === "live", `in-progress match is ${m.status}, expected live`);
+  assert(m.scoreA === 3 && m.scoreB === 1, "live match should show the running set score");
+}
+{
+  // An unfamiliar status code must not push a decided match back into the future.
+  const m = parseOne({ statusCode: "?", status: "", winner: "2" });
+  assert(m.status === "final", `decided match with an unknown code is ${m.status}, expected final`);
+}
+{
+  const m = parseOne({
+    statusCode: "B", status: "", winner: null,
+    team1: { displayNameA: null },
+    team2: { displayNameA: null },
+  });
+  assert(m.teamA.isPlaceholder && m.teamB.isPlaceholder, "empty sides should be placeholders");
+  assert(m.teamA.name === "TBD", `empty side is named ${m.teamA.name}, expected TBD`);
+}
+
 /* ------------------------------------------------------------ sides, flags */
 
 console.log("Sides carry player names and nation flags:");

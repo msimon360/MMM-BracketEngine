@@ -24,6 +24,19 @@ const ROUND_SEQUENCE = ["1", "2", "3", "4", "Q", "S", "F"];
 /** Engine round ids, largest stage → final. The renderer has no wider column. */
 const ENGINE_ROUND_IDS = ["R32", "R16", "QF", "SF", "F"];
 
+/** Feed status codes that mean the match is over. */
+const COMPLETED_CODES = new Set([
+  "D", // Completed
+  "E", // Retired
+  "F", // Walkover
+]);
+
+const COMPLETED_TEXT = /complete|retired|walkover|defaulted|awarded/i;
+const LIVE_TEXT = /live|in progress|suspended|resuming/i;
+
+/** Nobody took the court, so the 0–0 the feed reports is not a set score. */
+const WALKOVER_TEXT = /walkover|defaulted/i;
+
 class SlamDrawProvider extends BaseProvider {
   static ROUND_SEQUENCE = ROUND_SEQUENCE;
   static ENGINE_ROUND_IDS = ENGINE_ROUND_IDS;
@@ -162,7 +175,8 @@ class SlamDrawProvider extends BaseProvider {
         })
       : null;
 
-    const played = status === "final" || status === "live";
+    const played =
+      (status === "final" || status === "live") && !this.isWalkover(match);
 
     return {
       id: match.match_id,
@@ -174,6 +188,13 @@ class SlamDrawProvider extends BaseProvider {
       scoreB: played ? match.team2?.totalSetsWon ?? null : null,
       winner: this.parseWinner(match, teamA, teamB),
     };
+  }
+
+  isWalkover(match) {
+    return (
+      (match.statusCode || "").toUpperCase() === "F" ||
+      WALKOVER_TEXT.test(match.status || "")
+    );
   }
 
   parseSide(side) {
@@ -213,12 +234,21 @@ class SlamDrawProvider extends BaseProvider {
     return countryFlag(nation);
   }
 
+  /**
+   * Retirements and walkovers are finished matches with a decided winner, not
+   * upcoming ones — reporting them as scheduled hides the set score the feed
+   * already carries. A named winner is treated as final too, so an unfamiliar
+   * status code does not push a decided match back into the future.
+   */
   parseStatus(match) {
     const code = (match.statusCode || "").toUpperCase();
-    const text = (match.status || "").toLowerCase();
-    if (code === "L" || text.includes("live")) return "live";
-    if (code === "D" || text.includes("complete")) return "final";
-    return "scheduled";
+    const text = match.status || "";
+
+    if (code === "L" || LIVE_TEXT.test(text)) return "live";
+    if (COMPLETED_CODES.has(code) || COMPLETED_TEXT.test(text)) return "final";
+
+    const decided = String(match.winner) === "1" || String(match.winner) === "2";
+    return decided ? "final" : "scheduled";
   }
 
   parseWinner(match, teamA, teamB) {
