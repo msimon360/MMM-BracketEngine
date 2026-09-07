@@ -5,11 +5,13 @@ const {
 } = require("./schemas/bracket");
 const FifaProvider = require("./providers/FifaProvider");
 const StaticProvider = require("./providers/StaticProvider");
+const UsOpenProvider = require("./providers/UsOpenProvider");
 const WimbledonProvider = require("./providers/WimbledonProvider");
 
 const PROVIDERS = {
   fifa: FifaProvider,
   static: StaticProvider,
+  usopen: UsOpenProvider,
   wimbledon: WimbledonProvider,
 };
 
