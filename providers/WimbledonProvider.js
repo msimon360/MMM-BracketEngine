@@ -5,6 +5,7 @@
  * drawCode: MS, LS, MD, LD, XD
  */
 const BaseProvider = require("./BaseProvider");
+const { countryFlag } = require("../lib/country-flags");
 
 let _fetch;
 try {
@@ -123,8 +124,14 @@ class WimbledonProvider extends BaseProvider {
 
     if (!feedRounds.length) return [];
 
-    const idOffset = ENGINE_ROUND_IDS.length - feedRounds.length;
-    return feedRounds.map((round, index) => ({
+    // The engine can name at most five stages (R32 → F). Draws that begin
+    // earlier — a 128-player singles draw from the First Round, say — supply
+    // more feed rounds than there are ids, so keep the latest stages and drop
+    // the earliest instead of running off the front of ENGINE_ROUND_IDS.
+    const renderable = feedRounds.slice(-ENGINE_ROUND_IDS.length);
+    const idOffset = ENGINE_ROUND_IDS.length - renderable.length;
+
+    return renderable.map((round, index) => ({
       id: ENGINE_ROUND_IDS[idOffset + index],
       name: round.name,
       matches: round.matches.map(m => this.parseMatch(m)),
@@ -200,13 +207,7 @@ class WimbledonProvider extends BaseProvider {
   }
 
   nationFlag(nation) {
-    if (!nation || nation.length !== 3) return "";
-    const map = { GBR: "GB", USA: "US", TPE: "TW", ESA: "SV" };
-    const a2 = map[nation] || nation.slice(0, 2);
-    return [...a2]
-      .slice(0, 2)
-      .map(c => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
-      .join("");
+    return countryFlag(nation);
   }
 
   parseStatus(match) {

@@ -31,6 +31,10 @@ Module.register("MMM-BracketEngine", {
     return ["MMM-BracketEngine.css"];
   },
 
+  getScripts() {
+    return [this.file("lib/country-flags.js")];
+  },
+
   getHeader() {
     if (this.config.header) return this.config.header;
     const icon = this.bracket?.meta?.icon || "";
@@ -75,8 +79,10 @@ Module.register("MMM-BracketEngine", {
       champion = (m.winner === m.teamA?.abbr ? m.teamA : m.teamB)?.name || null;
     }
 
+    // Every column spans the same band of match rows, sized by the outermost
+    // round's half.
     const firstRound = roundMap[sideRoundIds[0]];
-    const rowBase = firstRound
+    const matchRows = firstRound
       ? Math.max(1, Math.ceil(firstRound.matches.length / 2))
       : 1;
 
@@ -97,13 +103,13 @@ Module.register("MMM-BracketEngine", {
 
     const leftHalf = document.createElement("div");
     leftHalf.className = "be-half be-half-left";
-    leftHalf.appendChild(this._buildGridHalf(leftDefs, "left", rowBase));
+    leftHalf.appendChild(this._buildGridHalf(leftDefs, "left", matchRows));
 
     const centre = this._buildCenterColumn(fin, third, champion);
 
     const rightHalf = document.createElement("div");
     rightHalf.className = "be-half be-half-right";
-    rightHalf.appendChild(this._buildGridHalf(rightDefs, "right", rowBase));
+    rightHalf.appendChild(this._buildGridHalf(rightDefs, "right", matchRows));
 
     bracketEl.appendChild(leftHalf);
     bracketEl.appendChild(centre);
@@ -133,11 +139,14 @@ Module.register("MMM-BracketEngine", {
     return order.filter(id => present.has(id));
   },
 
-  _buildGridHalf(roundDefs, side, rowBase) {
+  _buildGridHalf(roundDefs, side, matchRows) {
     const half = document.createElement("div");
     half.className = "be-grid-half";
     half.style.gridTemplateColumns = `repeat(${roundDefs.length}, 1fr)`;
-    half.style.gridTemplateRows = `repeat(${rowBase}, 1fr)`;
+    // Row 1 holds the round titles and is sized to its own content; the match
+    // rows below it must all be equal, or a parent match stops sitting exactly
+    // between the two matches feeding it and its connector lines miss.
+    half.style.gridTemplateRows = `auto repeat(${matchRows}, 1fr)`;
 
     const colOrder = side === "left"
       ? roundDefs.map((_, i) => i)
@@ -335,22 +344,7 @@ Module.register("MMM-BracketEngine", {
   },
 
   _flag(abbr) {
-    if (!abbr || /\d/.test(abbr)) return "";
-    const map = {
-      MEX: "MX", RSA: "ZA", KOR: "KR", CZE: "CZ", SUI: "CH", CAN: "CA",
-      BIH: "BA", QAT: "QA", BRA: "BR", MAR: "MA", SCO: "GB", HTI: "HT",
-      USA: "US", AUS: "AU", PAR: "PY", TUR: "TR", GER: "DE", CIV: "CI",
-      ECU: "EC", CUW: "CW", NED: "NL", JPN: "JP", SWE: "SE", TUN: "TN",
-      BEL: "BE", EGY: "EG", IRN: "IR", NZL: "NZ", ESP: "ES", CPV: "CV",
-      URU: "UY", KSA: "SA", FRA: "FR", NOR: "NO", SEN: "SN", IRQ: "IQ",
-      ARG: "AR", AUT: "AT", DZA: "DZ", JOR: "JO", COL: "CO", POR: "PT",
-      COD: "CD", UZB: "UZ", ENG: "GB", CRO: "HR", GHA: "GH", PAN: "PA",
-    };
-    const a2 = map[abbr] || abbr.slice(0, 2);
-    return [...a2]
-      .slice(0, 2)
-      .map(c => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
-      .join("");
+    return BracketCountryFlags.countryFlag(abbr);
   },
 
   scheduleUpdate(delay) {
@@ -374,9 +368,12 @@ Module.register("MMM-BracketEngine", {
     if (notification === "BE_BRACKET_ERROR") {
       Log.error(`[${this.name}] Bracket error:`, payload);
       this.error = payload;
-      if (this.bracket) {
-        this.updateDom(this.config.animationSpeed);
-      }
+      // A failed fetch is still a finished load attempt. Without this, the
+      // first error leaves the module on "Loading bracket…" forever with
+      // nothing on screen explaining why. Any previously fetched bracket is
+      // kept and rendered alongside the message.
+      this.loaded = true;
+      this.updateDom(this.config.animationSpeed);
     }
   },
 });
