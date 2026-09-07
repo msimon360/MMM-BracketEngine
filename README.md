@@ -10,6 +10,10 @@ Wimbledon Mens Singles
 <img width="1527" height="952" alt="Wimbledon" src="https://github.com/user-attachments/assets/628fee65-9779-4c0a-9027-8c964eff2828" />
 FIFA World Cup
 <img width="1743" height="1044" alt="FIFA_WorldCup" src="https://github.com/user-attachments/assets/3f09de51-9c33-4ea0-848e-cecb5192bf50" />
+US Open Men's Singles
+<img width="1920" height="1080" alt="usopen" src="https://github.com/user-attachments/assets/9eeb1eb2-d703-40ba-bf07-2bff3464251d" />
+
+
 
 ---
 ## Installation
