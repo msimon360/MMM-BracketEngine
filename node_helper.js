@@ -4,12 +4,14 @@ const {
   layoutRoundsForMirroredBracket,
 } = require("./schemas/bracket");
 const FifaProvider = require("./providers/FifaProvider");
+const NcaaProvider = require("./providers/NcaaProvider");
 const StaticProvider = require("./providers/StaticProvider");
 const UsOpenProvider = require("./providers/UsOpenProvider");
 const WimbledonProvider = require("./providers/WimbledonProvider");
 
 const PROVIDERS = {
   fifa: FifaProvider,
+  ncaa: NcaaProvider,
   static: StaticProvider,
   usopen: UsOpenProvider,
   wimbledon: WimbledonProvider,

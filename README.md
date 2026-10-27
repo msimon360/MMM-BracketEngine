@@ -55,7 +55,7 @@ Restart MagicMirror after installing: `pm2 restart mm`
 
 | Option | Default | Description |
 |---|---|---|
-| `provider` | `"fifa"` | Data provider name (`fifa`, `usopen`, `wimbledon`, `static`) |
+| `provider` | `"fifa"` | Data provider name (`fifa`, `ncaa`, `usopen`, `wimbledon`, `static`) |
 | `providerConfig` | `{}` | Provider-specific settings (see below) |
 | `updateInterval` | `180000` | Milliseconds between data refreshes |
 | `animationSpeed` | `1000` | DOM update fade speed in ms |
@@ -112,6 +112,25 @@ Data source: `https://www.usopen.org/en_US/scores/feeds/{year}/draws/{drawCode}.
 The women's draws are `WS` and `WD`, not Wimbledon's `LS` and `LD`. `BS` and `GS` are the junior singles draws. Any other code the feed serves still works — the header falls back to the event name the feed reports.
 
 Without a `fromRoundCode` the provider shows the latest rounds that fit, whatever the draw size: the Round of 32 onwards for a 128-player singles draw, and the Round of 16 onwards for the 16-team mixed doubles draw. That matters because mixed doubles was a 32-team draw in 2024 and a 16-team draw from 2025, so no single starting round is right for both.
+
+### NCAA provider
+
+```js
+provider: "ncaa",
+providerConfig: {
+  year: "2025",          // championship year, defaults to the current one
+  gender: "men",         // men or women
+  title: "NCAA Men's Basketball 2025"  // optional
+}
+```
+
+Data source: `https://site.api.espn.com/apis/site/v2/sports/basketball/{league}/scoreboard?dates={YYYYMMDD}&groups=100`
+
+`gender: "men"` reads `mens-college-basketball`; `gender: "women"` reads `womens-college-basketball`. `groups=100` is ESPN's NCAA Tournament group. The provider loads the season calendar and requests each date from March 12 through April 16, which covers the First Four through the championship.
+
+The mirror lays out five stages, so the provider keeps the Round of 32, Sweet 16, Elite Eight, Final Four, and the championship. The First Four and the Round of 64 are included only before any later round has two named teams — during the opening days the Round of 64 fills the bracket, and it drops out once the Round of 32 (or a later round) has a set matchup. Games that are still TBD against TBD do not count as a set matchup.
+
+Seeds are part of the team name, `(1) Florida`, because the shared bracket schema has no seed field. Schools are not countries: an abbreviation that would match a country code is lengthened from the school name, so Purdue does not pick up Puerto Rico's flag.
 
 ### Round trimming
 
@@ -227,7 +246,7 @@ Provider-specific match ordering (e.g. FIFA R32 reorder) belongs in the provider
 
 ```
 MMM-BracketEngine.js  ←→  node_helper.js  ←→  providers/
-     (render)              (router)            (fifa, static, …)
+     (render)              (router)            (fifa, ncaa, static, …)
          ↕                                          ↕
                         lib/  (shared browser + node helpers)
 ```
@@ -252,15 +271,16 @@ npm test                # offline: schema, layout, flags, draw parsing, renderin
 npm run test:order      # live FIFA feed: mirrored bracket ordering
 npm run test:wimbledon  # live Wimbledon feed: draw parsing
 npm run test:usopen     # live US Open feed: draw parsing
+npm run test:ncaa       # live NCAA feed: men's and women's tournaments
 ```
 
-`npm test` needs no network. It validates the placeholder bracket against the schema, checks mirrored-bracket ordering, checks country-code to flag resolution, checks the Grand Slam draw parsing shared by the Wimbledon and US Open providers (round ids, match states, feed URLs), and renders `getDom()` against a stub DOM to confirm the bracket grid and the error states.
+`npm test` needs no network. It validates the placeholder bracket against the schema, checks mirrored-bracket ordering, checks country-code to flag resolution, checks the Grand Slam draw parsing shared by the Wimbledon and US Open providers (round ids, match states, feed URLs), checks NCAA round mapping (seeds, scores, winners, feed URLs), and renders `getDom()` against a stub DOM to confirm the bracket grid and the error states.
 
 ---
 
 ## Troubleshooting
 
-- **"No bracket data yet." with a red message** — the provider failed. The message is the provider's error; check `pm2 logs mm` for the full `[MMM-BracketEngine]` stack. Confirm network access for the FIFA and Wimbledon providers.
+- **"No bracket data yet." with a red message** — the provider failed. The message is the provider's error; check `pm2 logs mm` for the full `[MMM-BracketEngine]` stack. Confirm network access for the FIFA, NCAA, and Wimbledon providers.
 - **"Loading bracket…" forever** — the module has not heard back from `node_helper` at all. Confirm the module directory name matches the module name in `config.js`.
 - **Stale data after error** — expected: the module keeps the last good bracket and shows a dimmed error message beneath it.
 - **A team shows no flag** — its `abbr` is not a country code the lookup recognises. Add it to `lib/country-flags.js`, or set `flag` on the team in the provider.
