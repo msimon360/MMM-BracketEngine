@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+- **NCAA provider** (`provider: "ncaa"`) for the men's and women's Division I basketball tournaments. Reads ESPN's NCAA Tournament scoreboard (group 100) and maps the Round of 32, Sweet 16, Elite Eight, Final Four, and championship onto the existing bracket rounds, including seeds, scores, and winners. The First Four and Round of 64 are shown only before a later round has a set matchup, because the renderer stops at the Round of 32.
+
 ## 1.1.0
 
 ### Added
